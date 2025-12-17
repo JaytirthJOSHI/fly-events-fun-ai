@@ -9,7 +9,7 @@ import Matches from './components/Matches'
 import AdminEvents from './components/AdminEvents'
 import Navbar from './components/Navbar'
 
-axios.defaults.baseURL = 'http://localhost:5001/api'
+axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
 
 function App() {
   const [user, setUser] = useState(null)
