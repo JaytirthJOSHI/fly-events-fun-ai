@@ -41,7 +41,9 @@ router.get('/find', authenticate, async (req, res) => {
             id: true,
             name: true,
             email: true,
-            phone: true
+            phone: true,
+            slackId: true,
+            profileImage: true
           }
         },
         event: {
@@ -126,7 +128,9 @@ router.get('/flight/:flightId', authenticate, async (req, res) => {
             id: true,
             name: true,
             email: true,
-            phone: true
+            phone: true,
+            slackId: true,
+            profileImage: true
           }
         },
         event: {

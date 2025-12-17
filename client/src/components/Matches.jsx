@@ -80,8 +80,25 @@ export default function Matches() {
     })
   }
 
-  const formatTime = (timeString) => {
-    return timeString || 'TBD'
+  const formatDateTime = (dateString, timeString) => {
+    const date = new Date(dateString)
+    const dateFormatted = date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+    
+    // Use provided time string, or extract time from date
+    let timeFormatted = timeString
+    if (!timeFormatted) {
+      timeFormatted = date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+    }
+    
+    return `${dateFormatted} at ${timeFormatted}`
   }
 
   return (
@@ -176,56 +193,64 @@ export default function Matches() {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {matches.map((match) => (
-              <div key={match.id} className="card-interactive">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-hc-dark">
-                      {match.user?.name || 'Unknown'}
-                    </h3>
-                    <p className="text-sm text-hc-muted">{match.user?.email}</p>
-                  </div>
-                  {match.timeDifferenceHours !== undefined && (
-                    <span className="bg-hc-green/20 text-hc-green text-xs font-bold px-3 py-1 rounded-hc-full">
-                      ±{match.timeDifferenceHours}h
-                    </span>
-                  )}
-                </div>
-
-                <div className="space-y-2 text-sm mb-4">
-                  {match.event && (
-                    <div>
-                      <span className="text-hc-muted">Event:</span>{' '}
-                      <span className="font-medium text-hc-dark">{match.event.name}</span>
+            {matches.map((match) => {
+              const slackLink = match.user?.slackId 
+                ? `https://hackclub.slack.com/team/${match.user.slackId}`
+                : '';
+              const contactUrl = `https://contact-helper.hackclub.com?slack=${encodeURIComponent(slackLink)}&email=${encodeURIComponent(match.user?.email || '')}&name=${encodeURIComponent(match.user?.name || '')}`;
+              
+              return (
+                <div key={match.id} className="card-interactive">
+                  <div className="flex items-start gap-4 mb-4">
+                    {match.user?.profileImage ? (
+                      <img 
+                        src={match.user.profileImage} 
+                        alt={match.user?.name || 'User'}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-hc-border"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-hc-cyan/20 border-2 border-hc-border flex items-center justify-center">
+                        <span className="text-hc-cyan font-bold text-xl">
+                          {(match.user?.name || 'U')[0].toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-hc-dark mb-1">
+                        {match.user?.name || 'Unknown'}
+                      </h3>
+                      {match.timeDifferenceHours !== undefined && (
+                        <span className="bg-hc-green/20 text-hc-green text-xs font-bold px-3 py-1 rounded-hc-full inline-block">
+                          ±{match.timeDifferenceHours}h
+                        </span>
+                      )}
                     </div>
-                  )}
-                  <div>
-                    <span className="text-hc-muted">Flight:</span>{' '}
-                    <span className="font-medium text-hc-dark">{match.flightNumber}</span>
                   </div>
-                  <div>
-                    <span className="text-hc-muted">Arriving:</span>{' '}
-                    <span className="font-medium text-hc-dark">
-                      {formatDate(match.arrivalDate)} at {formatTime(match.arrivalTime)}
-                    </span>
-                  </div>
-                </div>
 
-                {match.user?.phone && (
-                  <div className="border-t border-hc-border pt-3">
-                    <p className="text-sm">
-                      <span className="text-hc-muted">Contact:</span>{' '}
-                      <a 
-                        href={`tel:${match.user.phone}`}
-                        className="text-hc-red hover:text-red-600 font-bold"
-                      >
-                        {match.user.phone}
-                      </a>
-                    </p>
+                  <div className="space-y-2 text-sm mb-4">
+                    <div>
+                      <span className="text-hc-muted">Flight:</span>{' '}
+                      <span className="font-medium text-hc-dark">{match.flightNumber}</span>
+                    </div>
+                    <div>
+                      <span className="text-hc-muted">Arriving:</span>{' '}
+                      <span className="font-medium text-hc-dark">
+                        {formatDateTime(match.arrivalDate, match.arrivalTime)}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))}
+
+                  <a
+                    href={contactUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-primary w-full text-center block"
+                  >
+                    Contact
+                  </a>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
