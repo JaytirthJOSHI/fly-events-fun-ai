@@ -10,13 +10,13 @@ A platform to connect travelers flying to the same destination at similar times.
 - 🤝 Match algorithm finds people within customizable time windows
 - 📱 Modern, responsive UI built with React and Tailwind CSS
 - 🚀 Fast API built with Node.js and Express
-- 💾 PostgreSQL database (Nest Postgres) for reliable data storage
+- 💾 Supabase (PostgreSQL) for easy, hosted database
 
 ## Tech Stack
 
 ### Backend
 - **Node.js** with Express
-- **PostgreSQL** with Prisma ORM
+- **Supabase** (PostgreSQL) with Prisma ORM
 - **JWT** for authentication
 - **bcryptjs** for password hashing
 
@@ -30,7 +30,7 @@ A platform to connect travelers flying to the same destination at similar times.
 ## Prerequisites
 
 - Node.js (v16 or higher)
-- Nest account (free backend infrastructure from Hack Club) - [Get one here](https://hackclub.app)
+- Supabase account (free tier available) - [Sign up here](https://supabase.com)
 - npm or yarn
 
 ## Installation
@@ -43,15 +43,24 @@ A platform to connect travelers flying to the same destination at similar times.
    ```
    This will install dependencies for the root, server, and client directories.
 
-3. **Set up Nest Postgres:**
+3. **Set up Supabase:**
    
-   If you haven't already, create a database on Nest:
-   ```bash
-   ssh hackclub.app
-   nest db create flyevents
-   ```
+   a. Go to [supabase.com](https://supabase.com) and sign up/login
    
-   This will create a database named `yourusername_flyevents` (where `yourusername` is your Nest username).
+   b. Create a new project:
+      - Click "New Project"
+      - Give it a name (e.g., "fly-events")
+      - Choose a strong database password (save this!)
+      - Select a region close to you
+      - Click "Create new project"
+   
+   c. Wait for the project to finish setting up (2-3 minutes)
+   
+   d. Get your database connection string:
+      - Go to **Settings** → **Database**
+      - Scroll to **Connection string** section
+      - Copy the **Connection pooling** URI (it has `pooler.supabase.com` in it)
+      - Replace `[YOUR-PASSWORD]` with the password you set when creating the project
 
 4. **Set up environment variables:**
    
@@ -60,27 +69,15 @@ A platform to connect travelers flying to the same destination at similar times.
    cp server/.env.example server/.env
    ```
    
-   Edit `server/.env` and update the values:
-   
-   **For local development (connecting from your machine):**
-   ```
+   Edit `server/.env` and paste your Supabase connection string:
+   ```env
    PORT=5000
-   DATABASE_URL=postgres://username:password@hackclub.app/username_flyevents
+   DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
    JWT_SECRET=your-super-secret-jwt-key-change-this
    NODE_ENV=development
    ```
    
-   Replace:
-   - `username` with your Nest username
-   - `password` with your Nest password
-   - `username_flyevents` with your actual database name (yourusername_flyevents)
-   
-   **For deployment on Nest (connecting from within Nest):**
-   ```
-   DATABASE_URL=postgres://username@localhost/username_flyevents?sslmode=disable&host=/var/run/postgresql
-   ```
-   
-   (No password needed when connecting from within Nest!)
+   Make sure to replace `[YOUR-PASSWORD]` with your actual database password!
 
 5. **Set up the database schema:**
    
@@ -91,7 +88,9 @@ A platform to connect travelers flying to the same destination at similar times.
    npm run prisma:migrate
    ```
    
-   This will create the necessary tables in your PostgreSQL database.
+   When prompted for a migration name, type: `init` or just press Enter
+   
+   This will create the necessary tables in your Supabase database. You can verify in the Supabase dashboard under **Table Editor**.
 
 6. **Start the development servers:**
    

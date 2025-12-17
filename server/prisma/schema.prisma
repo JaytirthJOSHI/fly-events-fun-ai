@@ -10,11 +10,12 @@ datasource db {
 
 model User {
   id           String    @id @default(uuid())
+  hcaId        String    @unique @map("hca_id") // Hack Club Auth sub (ident!xxx)
   name         String
   email        String    @unique
-  password     String
   phone        String?
-  profileImage String?
+  profileImage String?   @map("profile_image")
+  slackId      String?   @map("slack_id")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   flights      Flight[]

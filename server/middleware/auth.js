@@ -14,9 +14,11 @@ export const authenticate = async (req, res, next) => {
       where: { id: decoded.userId },
       select: {
         id: true,
+        hcaId: true,
         name: true,
         email: true,
         phone: true,
+        slackId: true,
         profileImage: true
       }
     });

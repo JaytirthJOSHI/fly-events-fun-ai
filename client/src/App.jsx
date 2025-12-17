@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import axios from 'axios'
 import Login from './components/Login'
-import Register from './components/Register'
+import AuthCallback from './components/AuthCallback'
 import Dashboard from './components/Dashboard'
 import FlightForm from './components/FlightForm'
 import Matches from './components/Matches'
@@ -18,10 +18,21 @@ function App() {
     const token = localStorage.getItem('token')
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // Fetch user info if needed
-      setUser({ token })
+      // Fetch user info
+      axios.get('/auth/me')
+        .then(res => {
+          setUser({ ...res.data, token })
+        })
+        .catch(() => {
+          localStorage.removeItem('token')
+          delete axios.defaults.headers.common['Authorization']
+        })
+        .finally(() => {
+          setLoading(false)
+        })
+    } else {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
   const login = (token, userData) => {
@@ -50,8 +61,12 @@ function App() {
             element={!user ? <Login onLogin={login} /> : <Navigate to="/dashboard" />} 
           />
           <Route 
-            path="/register" 
-            element={!user ? <Register onLogin={login} /> : <Navigate to="/dashboard" />} 
+            path="/auth/callback" 
+            element={<AuthCallback />} 
+          />
+          <Route 
+            path="/auth/success" 
+            element={<AuthCallback />} 
           />
           <Route 
             path="/dashboard" 

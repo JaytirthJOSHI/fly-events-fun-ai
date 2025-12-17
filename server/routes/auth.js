@@ -1,92 +1,172 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 import prisma from '../db/prisma.js';
+import { getHcaClient, getAuthUrl } from '../config/hca.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+const REDIRECT_URI = process.env.HACKCLUB_REDIRECT_URI || 'http://localhost:3000/auth/callback';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-// Register
-router.post('/register', async (req, res) => {
+// Store states temporarily (in production, use Redis or similar)
+const stateStore = new Map();
+
+// Redirect to Hack Club Auth for login
+router.get('/login', (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
+    const state = crypto.randomBytes(32).toString('hex');
+    stateStore.set(state, { createdAt: Date.now() });
     
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        phone: phone || null
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        phone: true,
-        createdAt: true
-      }
-    });
-
-    // Generate token
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.status(201).json({
-      token,
-      user
-    });
+    const authUrl = getAuthUrl(state);
+    res.json({ authUrl, state });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });
 
-// Login
-router.post('/login', async (req, res) => {
+// OAuth callback - exchange code for tokens and create/login user
+router.get('/callback', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { code, state, error } = req.query;
 
-    // Find user
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
+    if (error) {
+      return res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(error)}`);
+    }
+
+    if (!code || !state) {
+      return res.redirect(`${FRONTEND_URL}/login?error=missing_code_or_state`);
+    }
+
+    // Verify state (in production, check stateStore)
+    if (!stateStore.has(state)) {
+      return res.redirect(`${FRONTEND_URL}/login?error=invalid_state`);
+    }
+
+    stateStore.delete(state);
+
+    const client = await getHcaClient();
     
+    // Exchange authorization code for tokens
+    const tokenSet = await client.callback(REDIRECT_URI, { code, state });
+    
+    // Get user info from ID token
+    const claims = tokenSet.claims();
+    const hcaId = claims.sub; // ident!xxx
+    const email = claims.email;
+    const name = claims.name || `${claims.given_name || ''} ${claims.family_name || ''}`.trim();
+
+    // Create or update user in database
+    let user = await prisma.user.findUnique({
+      where: { hcaId }
+    });
+
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+      // Check if user exists by email (migration case)
+      const existingUser = await prisma.user.findUnique({
+        where: { email }
+      });
+
+      if (existingUser) {
+        // Update existing user with HCA ID
+        user = await prisma.user.update({
+          where: { email },
+          data: { hcaId }
+        });
+      } else {
+        // Create new user
+        user = await prisma.user.create({
+          data: {
+            hcaId,
+            email,
+            name,
+            phone: claims.phone_number || null,
+            slackId: claims.slack_id || null,
+          },
+          select: {
+            id: true,
+            hcaId: true,
+            name: true,
+            email: true,
+            phone: true,
+            slackId: true,
+            createdAt: true
+          }
+        });
+      }
+    } else {
+      // Update existing user info
+      user = await prisma.user.update({
+        where: { hcaId },
+        data: {
+          name,
+          email,
+          phone: claims.phone_number || user.phone,
+          slackId: claims.slack_id || user.slackId,
+        },
+        select: {
+          id: true,
+          hcaId: true,
+          name: true,
+          email: true,
+          phone: true,
+          slackId: true,
+          createdAt: true
+        }
+      });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    // Generate JWT token for our app
+    const appToken = jwt.sign({ 
+      userId: user.id,
+      hcaId: user.hcaId 
+    }, JWT_SECRET, { expiresIn: '7d' });
+
+    // Redirect to frontend with token
+    res.redirect(`${FRONTEND_URL}/auth/success?token=${appToken}`);
+  } catch (error) {
+    console.error('OAuth callback error:', error);
+    res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(error.message)}`);
+  }
+});
+
+// Get current user
+router.get('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: 'No token provided' });
     }
 
-    // Generate token
-    const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        hcaId: true,
+        name: true,
+        email: true,
+        phone: true,
+        slackId: true,
+        createdAt: true
       }
     });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(401).json({ message: 'Invalid token' });
   }
+});
+
+// Logout (client-side will remove token, this is just for consistency)
+router.post('/logout', (req, res) => {
+  res.json({ message: 'Logged out successfully' });
 });
 
 export default router;
