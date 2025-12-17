@@ -1,0 +1,47 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  password     String
+  phone        String?
+  profileImage String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  flights      Flight[]
+
+  @@map("users")
+}
+
+model Flight {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  flightNumber  String   @map("flight_number")
+  airline       String
+  origin        String
+  destination   String
+  arrivalDate   DateTime @map("arrival_date")
+  arrivalTime   String   @map("arrival_time")
+  departureDate DateTime @map("departure_date")
+  departureTime String   @map("departure_time")
+  terminal      String?
+  gate          String?
+  lookingFor    String   @default("travel-buddy") @map("looking_for")
+  notes         String?  @db.VarChar(500)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([destination, arrivalDate, isActive])
+  @@map("flights")
+}
