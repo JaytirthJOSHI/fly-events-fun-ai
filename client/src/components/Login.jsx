@@ -68,7 +68,7 @@ export default function Login({ onLogin }) {
           </div>
 
           <div className="text-center text-xs text-hc-muted bg-hc-smoke px-3 py-2 rounded-hc">
-            This is a community project, not an official Hack Club product.
+            This is a community project, not official Hack Club.
           </div>
         </div>
       </div>
