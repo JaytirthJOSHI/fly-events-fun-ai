@@ -194,7 +194,9 @@ export default function Matches() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => {
-              const slackId = match.user?.slackId
+              const slackId =
+                match.user?.slackId ||
+                (match.user?.id && match.user.id.startsWith('U') ? match.user.id : null)
               const slackUrl = slackId
                 ? `https://hackclub.enterprise.slack.com/team/${slackId}`
                 : null
