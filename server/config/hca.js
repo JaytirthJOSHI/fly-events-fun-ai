@@ -12,7 +12,7 @@ export function getAuthUrl(state) {
     client_id: CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'openid profile email',
+    scope: 'openid profile email name slack_id verification_status',
     state: state,
   });
 
