@@ -6,8 +6,9 @@ export default function Matches() {
   const [searchParams] = useSearchParams()
   const flightId = searchParams.get('flightId')
   
+  const [events, setEvents] = useState([])
   const [searchForm, setSearchForm] = useState({
-    destination: '',
+    eventId: '',
     arrivalDate: '',
     timeWindow: '4'
   })
@@ -16,10 +17,20 @@ export default function Matches() {
   const [error, setError] = useState('')
 
   useEffect(() => {
+    fetchEvents()
     if (flightId) {
       fetchMatchesForFlight(flightId)
     }
   }, [flightId])
+
+  const fetchEvents = async () => {
+    try {
+      const res = await axios.get('/events')
+      setEvents(res.data)
+    } catch (err) {
+      console.error('Failed to load events')
+    }
+  }
 
   const fetchMatchesForFlight = async (id) => {
     setLoading(true)
@@ -28,7 +39,7 @@ export default function Matches() {
       setMatches(res.data.matches || [])
       if (res.data.flight) {
         setSearchForm({
-          destination: res.data.flight.destination,
+          eventId: res.data.flight.eventId || '',
           arrivalDate: new Date(res.data.flight.arrivalDate).toISOString().split('T')[0],
           timeWindow: '4'
         })
@@ -47,7 +58,7 @@ export default function Matches() {
 
     try {
       const params = new URLSearchParams({
-        destination: searchForm.destination,
+        eventId: searchForm.eventId,
         arrivalDate: searchForm.arrivalDate,
         timeWindow: searchForm.timeWindow
       })
@@ -75,28 +86,33 @@ export default function Matches() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Find Travel Buddies</h1>
+      <h1 className="text-3xl font-bold text-hc-dark mb-8">Find Travel Buddies</h1>
 
       {!flightId && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="card mb-8">
           <form onSubmit={handleSearch} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Destination *
+                <label className="block text-sm font-bold text-hc-dark mb-2">
+                  Event *
                 </label>
-                <input
-                  type="text"
+                <select
                   required
-                  value={searchForm.destination}
-                  onChange={(e) => setSearchForm({ ...searchForm, destination: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="LAX, JFK, etc."
-                />
+                  value={searchForm.eventId}
+                  onChange={(e) => setSearchForm({ ...searchForm, eventId: e.target.value })}
+                  className="input-field"
+                >
+                  <option value="">Select an event...</option>
+                  {events.map(event => (
+                    <option key={event.id} value={event.id}>
+                      {event.name} - {event.destination}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-hc-dark mb-2">
                   Arrival Date *
                 </label>
                 <input
@@ -104,18 +120,18 @@ export default function Matches() {
                   required
                   value={searchForm.arrivalDate}
                   onChange={(e) => setSearchForm({ ...searchForm, arrivalDate: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="input-field"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-bold text-hc-dark mb-2">
                   Time Window (hours)
                 </label>
                 <select
                   value={searchForm.timeWindow}
                   onChange={(e) => setSearchForm({ ...searchForm, timeWindow: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="input-field"
                 >
                   <option value="2">±2 hours</option>
                   <option value="4">±4 hours</option>
@@ -128,7 +144,7 @@ export default function Matches() {
             <button
               type="submit"
               disabled={loading}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium disabled:opacity-50"
+              className="btn-primary disabled:opacity-50"
             >
               {loading ? 'Searching...' : 'Search for Buddies'}
             </button>
@@ -137,90 +153,71 @@ export default function Matches() {
       )}
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-50 border-2 border-hc-red text-hc-red px-4 py-3 rounded-hc mb-6 font-medium">
           {error}
         </div>
       )}
 
       {loading && matches.length === 0 ? (
-        <div className="text-center py-12">Loading matches...</div>
+        <div className="text-center py-12 text-hc-red font-bold animate-pulse">
+          Loading matches...
+        </div>
       ) : matches.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">No matches found. Try adjusting your search criteria.</p>
+        <div className="card text-center py-12">
+          
+          <p className="text-hc-muted">No matches found. Try adjusting your search criteria.</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-            <p className="text-sm text-blue-800">
-              Found <strong>{matches.length}</strong> {matches.length === 1 ? 'person' : 'people'} arriving around the same time!
+        <div className="space-y-6">
+          <div className="bg-hc-cyan/20 border-2 border-hc-cyan rounded-hc-lg p-4">
+            <p className="text-hc-dark font-medium">
+              Found <strong className="text-hc-cyan">{matches.length}</strong> {matches.length === 1 ? 'person' : 'people'} arriving around the same time!
             </p>
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => (
-              <div key={match._id} className="bg-white rounded-lg shadow-md p-6">
+              <div key={match.id} className="card-interactive">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-bold text-hc-dark">
                       {match.user?.name || 'Unknown'}
                     </h3>
-                    <p className="text-sm text-gray-500">{match.user?.email}</p>
+                    <p className="text-sm text-hc-muted">{match.user?.email}</p>
                   </div>
                   {match.timeDifferenceHours !== undefined && (
-                    <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">
+                    <span className="bg-hc-green/20 text-hc-green text-xs font-bold px-3 py-1 rounded-hc-full">
                       ±{match.timeDifferenceHours}h
                     </span>
                   )}
                 </div>
 
                 <div className="space-y-2 text-sm mb-4">
+                  {match.event && (
+                    <div>
+                      <span className="text-hc-muted">Event:</span>{' '}
+                      <span className="font-medium text-hc-dark">{match.event.name}</span>
+                    </div>
+                  )}
                   <div>
-                    <span className="text-gray-500">Flight:</span>{' '}
-                    <span className="font-medium">{match.flightNumber}</span>
+                    <span className="text-hc-muted">Flight:</span>{' '}
+                    <span className="font-medium text-hc-dark">{match.flightNumber}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Airline:</span>{' '}
-                    <span className="font-medium">{match.airline}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Arriving:</span>{' '}
-                    <span className="font-medium">
+                    <span className="text-hc-muted">Arriving:</span>{' '}
+                    <span className="font-medium text-hc-dark">
                       {formatDate(match.arrivalDate)} at {formatTime(match.arrivalTime)}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-gray-500">From:</span>{' '}
-                    <span className="font-medium">{match.origin}</span>
-                  </div>
-                  {match.terminal && (
-                    <div>
-                      <span className="text-gray-500">Terminal:</span>{' '}
-                      <span className="font-medium">{match.terminal}</span>
-                    </div>
-                  )}
-                  {match.lookingFor && (
-                    <div>
-                      <span className="text-gray-500">Looking for:</span>{' '}
-                      <span className="font-medium capitalize">
-                        {match.lookingFor.replace('-', ' ')}
-                      </span>
-                    </div>
-                  )}
                 </div>
 
-                {match.notes && (
-                  <div className="border-t pt-3 mb-4">
-                    <p className="text-sm text-gray-600 italic">"{match.notes}"</p>
-                  </div>
-                )}
-
                 {match.user?.phone && (
-                  <div className="border-t pt-3">
+                  <div className="border-t border-hc-border pt-3">
                     <p className="text-sm">
-                      <span className="text-gray-500">Contact:</span>{' '}
+                      <span className="text-hc-muted">Contact:</span>{' '}
                       <a 
                         href={`tel:${match.user.phone}`}
-                        className="text-indigo-600 hover:text-indigo-700 font-medium"
+                        className="text-hc-red hover:text-red-600 font-bold"
                       >
                         {match.user.phone}
                       </a>

@@ -6,9 +6,10 @@ import AuthCallback from './components/AuthCallback'
 import Dashboard from './components/Dashboard'
 import FlightForm from './components/FlightForm'
 import Matches from './components/Matches'
+import AdminEvents from './components/AdminEvents'
 import Navbar from './components/Navbar'
 
-axios.defaults.baseURL = 'http://localhost:5000/api'
+axios.defaults.baseURL = 'http://localhost:5001/api'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -48,12 +49,16 @@ function App() {
   }
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-hc-snow">
+        <div className="text-hc-red text-xl font-bold animate-pulse">Loading...</div>
+      </div>
+    )
   }
 
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-hc-snow font-phantom">
         {user && <Navbar user={user} onLogout={logout} />}
         <Routes>
           <Route 
@@ -79,6 +84,10 @@ function App() {
           <Route 
             path="/matches" 
             element={user ? <Matches /> : <Navigate to="/login" />} 
+          />
+          <Route 
+            path="/admin/events" 
+            element={user?.role === 'admin' ? <AdminEvents /> : <Navigate to="/dashboard" />} 
           />
           <Route 
             path="/" 

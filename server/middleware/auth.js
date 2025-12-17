@@ -19,7 +19,8 @@ export const authenticate = async (req, res, next) => {
         email: true,
         phone: true,
         slackId: true,
-        profileImage: true
+        profileImage: true,
+        role: true
       }
     });
     

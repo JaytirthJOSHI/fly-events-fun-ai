@@ -1,26 +1,38 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import axios from 'axios';
 import prisma from '../db/prisma.js';
-import { getHcaClient, getAuthUrl } from '../config/hca.js';
+import { getAuthUrl, HCA_BASE_URL, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI } from '../config/hca.js';
 import crypto from 'crypto';
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const REDIRECT_URI = process.env.HACKCLUB_REDIRECT_URI || 'http://localhost:3000/auth/callback';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
 // Store states temporarily (in production, use Redis or similar)
 const stateStore = new Map();
 
+// Clean up old states (older than 10 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [state, data] of stateStore.entries()) {
+    if (now - data.createdAt > 10 * 60 * 1000) {
+      stateStore.delete(state);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
+
 // Redirect to Hack Club Auth for login
-router.get('/login', (req, res) => {
+router.get('/login', async (req, res) => {
   try {
     const state = crypto.randomBytes(32).toString('hex');
     stateStore.set(state, { createdAt: Date.now() });
     
     const authUrl = getAuthUrl(state);
+    console.log('Generated state:', state);
     res.json({ authUrl, state });
   } catch (error) {
+    console.error('Error generating auth URL:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -30,31 +42,90 @@ router.get('/callback', async (req, res) => {
   try {
     const { code, state, error } = req.query;
 
+    console.log('OAuth callback received:', { 
+      hasCode: !!code, 
+      hasState: !!state, 
+      hasError: !!error,
+    });
+
     if (error) {
+      console.error('OAuth error:', error);
       return res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(error)}`);
     }
 
     if (!code || !state) {
+      console.error('Missing code or state:', { code: !!code, state: !!state });
       return res.redirect(`${FRONTEND_URL}/login?error=missing_code_or_state`);
     }
 
-    // Verify state (in production, check stateStore)
+    // Verify state
     if (!stateStore.has(state)) {
+      console.error('Invalid state:', state, 'Available states:', Array.from(stateStore.keys()));
       return res.redirect(`${FRONTEND_URL}/login?error=invalid_state`);
     }
 
     stateStore.delete(state);
 
-    const client = await getHcaClient();
+    // Step 4: Exchange code for access token
+    // OAuth token endpoint expects form-encoded data
+    const tokenResponse = await axios.post(
+      `${HCA_BASE_URL}/oauth/token`,
+      new URLSearchParams({
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+        code: code,
+        grant_type: 'authorization_code'
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+
+    const accessToken = tokenResponse.data.access_token;
+
+    if (!accessToken) {
+      console.error('No access token received:', tokenResponse.data);
+      return res.redirect(`${FRONTEND_URL}/login?error=no_access_token`);
+    }
+
+    // Step 5: Get user info from API
+    console.log('Fetching user info with access token:', accessToken.substring(0, 20) + '...');
+    const userResponse = await axios.get(`${HCA_BASE_URL}/api/v1/me`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    const userData = userResponse.data;
+    console.log('User data from API:', JSON.stringify(userData, null, 2));
     
-    // Exchange authorization code for tokens
-    const tokenSet = await client.callback(REDIRECT_URI, { code, state });
+    // HCA API returns data nested under 'identity'
+    const identity = userData?.identity;
+    const hcaId = identity?.id; // Already in "ident!xxx" format
+    const email = identity?.primary_email;
     
-    // Get user info from ID token
-    const claims = tokenSet.claims();
-    const hcaId = claims.sub; // ident!xxx
-    const email = claims.email;
-    const name = claims.name || `${claims.given_name || ''} ${claims.family_name || ''}`.trim();
+    // Try to get name from various fields, fallback to email username
+    const name = identity?.name || 
+                 identity?.full_name || 
+                 identity?.display_name ||
+                 `${(identity?.first_name || '').trim()} ${(identity?.last_name || '').trim()}`.trim() || 
+                 email?.split('@')[0] || 
+                 'User';
+
+    console.log('Extracted user info:', { hcaId, email, name });
+
+    if (!hcaId) {
+      console.error('No user ID found in API response. Available fields:', Object.keys(userData || {}));
+      throw new Error('No user ID in API response');
+    }
+
+    if (!email) {
+      console.error('No email found in API response:', userData);
+      throw new Error('No email in API response');
+    }
 
     // Create or update user in database
     let user = await prisma.user.findUnique({
@@ -74,14 +145,15 @@ router.get('/callback', async (req, res) => {
           data: { hcaId }
         });
       } else {
-        // Create new user
+        // Create new user (default role is "user", existing users are already admin)
         user = await prisma.user.create({
           data: {
             hcaId,
             email,
             name,
-            phone: claims.phone_number || null,
-            slackId: claims.slack_id || null,
+            phone: identity?.phone || null,
+            slackId: identity?.slack_id || null,
+            role: 'user', // New users are standard users
           },
           select: {
             id: true,
@@ -101,8 +173,8 @@ router.get('/callback', async (req, res) => {
         data: {
           name,
           email,
-          phone: claims.phone_number || user.phone,
-          slackId: claims.slack_id || user.slackId,
+          phone: identity?.phone || user.phone,
+          slackId: identity?.slack_id || user.slackId,
         },
         select: {
           id: true,
@@ -126,7 +198,10 @@ router.get('/callback', async (req, res) => {
     res.redirect(`${FRONTEND_URL}/auth/success?token=${appToken}`);
   } catch (error) {
     console.error('OAuth callback error:', error);
-    res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(error.message)}`);
+    console.error('Error response:', error.response?.data);
+    console.error('Error status:', error.response?.status);
+    const errorMessage = error.response?.data?.error || error.response?.data?.error_description || error.message || 'Authentication failed';
+    res.redirect(`${FRONTEND_URL}/login?error=${encodeURIComponent(errorMessage)}`);
   }
 });
 
@@ -150,6 +225,7 @@ router.get('/me', async (req, res) => {
         email: true,
         phone: true,
         slackId: true,
+        role: true,
         createdAt: true
       }
     });

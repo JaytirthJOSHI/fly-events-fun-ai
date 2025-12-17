@@ -2,11 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Phantom Sans';
+  src: url('https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Regular.woff2') format('woff2'),
+       url('https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Phantom Sans';
+  src: url('https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Bold.woff2') format('woff2'),
+       url('https://assets.hackclub.com/fonts/Phantom_Sans_0.7/Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Phantom Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-hc-red hover:bg-red-600 text-white font-bold px-6 py-3 rounded-hc-full shadow-hc-card transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply bg-hc-dark hover:bg-hc-darkless text-white font-bold px-6 py-3 rounded-hc-full shadow-hc-card transition-all duration-200;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-hc-red text-hc-red hover:bg-hc-red hover:text-white font-bold px-6 py-3 rounded-hc-full transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-white rounded-hc-lg shadow-hc-card p-6;
+  }
+  
+  .card-interactive {
+    @apply card transition-all duration-200 hover:scale-105 hover:shadow-hc-elevated;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 bg-hc-snow border border-hc-border rounded-hc focus:outline-none focus:ring-2 focus:ring-hc-red focus:border-transparent transition-all duration-200;
+  }
 }

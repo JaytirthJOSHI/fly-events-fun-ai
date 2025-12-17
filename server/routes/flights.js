@@ -4,6 +4,55 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Lookup flight info from AviationStack API
+router.get('/lookup/:flightNumber', authenticate, async (req, res) => {
+  try {
+    const { flightNumber } = req.params;
+    const apiKey = process.env.AVIATIONSTACK_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(500).json({ message: 'Flight lookup API not configured' });
+    }
+
+    const response = await fetch(
+      `http://api.aviationstack.com/v1/flights?access_key=${apiKey}&flight_iata=${flightNumber}`
+    );
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      return res.status(400).json({ message: data.error.message || 'API error' });
+    }
+    
+    if (!data.data || data.data.length === 0) {
+      return res.status(404).json({ message: 'Flight not found' });
+    }
+
+    const flight = data.data[0];
+    
+    const flightInfo = {
+      flightNumber: flight.flight?.iata || flightNumber,
+      airline: flight.airline?.name || '',
+      origin: flight.departure?.airport || '',
+      originIata: flight.departure?.iata || '',
+      destination: flight.arrival?.airport || '',
+      destinationIata: flight.arrival?.iata || '',
+      departureDate: flight.departure?.scheduled ? flight.departure.scheduled.split('T')[0] : '',
+      departureTime: flight.departure?.scheduled ? flight.departure.scheduled.split('T')[1]?.substring(0, 5) : '',
+      arrivalDate: flight.arrival?.scheduled ? flight.arrival.scheduled.split('T')[0] : '',
+      arrivalTime: flight.arrival?.scheduled ? flight.arrival.scheduled.split('T')[1]?.substring(0, 5) : '',
+      terminal: flight.arrival?.terminal || '',
+      gate: flight.arrival?.gate || '',
+      status: flight.flight_status || ''
+    };
+    
+    res.json(flightInfo);
+  } catch (error) {
+    console.error('Flight lookup error:', error);
+    res.status(500).json({ message: 'Failed to lookup flight' });
+  }
+});
+
 // Get all flights for a user
 router.get('/my-flights', authenticate, async (req, res) => {
   try {
@@ -14,6 +63,13 @@ router.get('/my-flights', authenticate, async (req, res) => {
           select: {
             name: true,
             email: true
+          }
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            destination: true
           }
         }
       },
@@ -31,42 +87,43 @@ router.post('/', authenticate, async (req, res) => {
   try {
     const {
       flightNumber,
-      airline,
-      origin,
-      destination,
+      eventId,
       arrivalDate,
-      arrivalTime,
-      departureDate,
-      departureTime,
-      terminal,
-      gate,
-      lookingFor,
-      notes,
-      isActive
+      arrivalTime
     } = req.body;
+
+    // Validate event exists if provided
+    if (eventId) {
+      const event = await prisma.event.findUnique({
+        where: { id: eventId, isActive: true }
+      });
+      
+      if (!event) {
+        return res.status(400).json({ message: 'Invalid or inactive event' });
+      }
+    }
 
     const flight = await prisma.flight.create({
       data: {
         userId: req.user.id,
-        flightNumber,
-        airline,
-        origin,
-        destination: destination.toUpperCase(),
+        eventId: eventId || null,
+        flightNumber: flightNumber.toUpperCase().trim(),
         arrivalDate: new Date(arrivalDate),
         arrivalTime,
-        departureDate: new Date(departureDate),
-        departureTime,
-        terminal: terminal || null,
-        gate: gate || null,
-        lookingFor: lookingFor || 'travel-buddy',
-        notes: notes || null,
-        isActive: isActive !== undefined ? isActive : true
+        isActive: true
       },
       include: {
         user: {
           select: {
             name: true,
             email: true
+          }
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            destination: true
           }
         }
       }
@@ -95,33 +152,28 @@ router.put('/:id', authenticate, async (req, res) => {
 
     const {
       flightNumber,
-      airline,
-      origin,
-      destination,
+      eventId,
       arrivalDate,
       arrivalTime,
-      departureDate,
-      departureTime,
-      terminal,
-      gate,
-      lookingFor,
-      notes,
       isActive
     } = req.body;
 
+    // Validate event exists if provided
+    if (eventId) {
+      const event = await prisma.event.findUnique({
+        where: { id: eventId, isActive: true }
+      });
+      
+      if (!event) {
+        return res.status(400).json({ message: 'Invalid or inactive event' });
+      }
+    }
+
     const updateData = {};
-    if (flightNumber) updateData.flightNumber = flightNumber;
-    if (airline) updateData.airline = airline;
-    if (origin) updateData.origin = origin;
-    if (destination) updateData.destination = destination.toUpperCase();
+    if (flightNumber) updateData.flightNumber = flightNumber.toUpperCase().trim();
+    if (eventId !== undefined) updateData.eventId = eventId || null;
     if (arrivalDate) updateData.arrivalDate = new Date(arrivalDate);
     if (arrivalTime) updateData.arrivalTime = arrivalTime;
-    if (departureDate) updateData.departureDate = new Date(departureDate);
-    if (departureTime) updateData.departureTime = departureTime;
-    if (terminal !== undefined) updateData.terminal = terminal || null;
-    if (gate !== undefined) updateData.gate = gate || null;
-    if (lookingFor) updateData.lookingFor = lookingFor;
-    if (notes !== undefined) updateData.notes = notes || null;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const flight = await prisma.flight.update({
@@ -132,6 +184,13 @@ router.put('/:id', authenticate, async (req, res) => {
           select: {
             name: true,
             email: true
+          }
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            destination: true
           }
         }
       }

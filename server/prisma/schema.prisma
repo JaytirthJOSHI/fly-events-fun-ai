@@ -16,6 +16,7 @@ model User {
   phone        String?
   profileImage String?   @map("profile_image")
   slackId      String?   @map("slack_id")
+  role         String    @default("user") // "admin" or "user"
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
   flights      Flight[]
@@ -23,26 +24,35 @@ model User {
   @@map("users")
 }
 
+model Event {
+  id          String   @id @default(uuid())
+  name        String
+  destination String
+  description String?  @db.Text
+  startDate   DateTime @map("start_date")
+  endDate     DateTime? @map("end_date")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  flights     Flight[]
+
+  @@index([destination, isActive])
+  @@map("events")
+}
+
 model Flight {
   id            String   @id @default(uuid())
   userId        String   @map("user_id")
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String?  @map("event_id")
+  event         Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   flightNumber  String   @map("flight_number")
-  airline       String
-  origin        String
-  destination   String
   arrivalDate   DateTime @map("arrival_date")
   arrivalTime   String   @map("arrival_time")
-  departureDate DateTime @map("departure_date")
-  departureTime String   @map("departure_time")
-  terminal      String?
-  gate          String?
-  lookingFor    String   @default("travel-buddy") @map("looking_for")
-  notes         String?  @db.VarChar(500)
   isActive      Boolean  @default(true) @map("is_active")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  @@index([destination, arrivalDate, isActive])
+  @@index([eventId, arrivalDate, isActive])
   @@map("flights")
 }

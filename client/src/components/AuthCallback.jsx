@@ -1,14 +1,23 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 
 export default function AuthCallback() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const token = urlParams.get('token')
-    const error = urlParams.get('error')
+    const token = searchParams.get('token')
+    const error = searchParams.get('error')
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+
+    // If we have code/state, forward to backend (in case HCA redirects to frontend)
+    if (code && state && !token) {
+      // Forward to backend callback
+      window.location.href = `http://localhost:5001/api/auth/callback?code=${code}&state=${state}`
+      return
+    }
 
     if (error) {
       navigate(`/login?error=${encodeURIComponent(error)}`)
@@ -18,7 +27,7 @@ export default function AuthCallback() {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
       
       // Fetch user info and redirect
-      axios.get('/api/auth/me')
+      axios.get('/auth/me')
         .then(res => {
           navigate('/dashboard')
         })
@@ -29,7 +38,7 @@ export default function AuthCallback() {
     } else {
       navigate('/login?error=no_token')
     }
-  }, [navigate])
+  }, [navigate, searchParams])
 
   return (
     <div className="min-h-screen flex items-center justify-center">

@@ -4,28 +4,28 @@ import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Find matching flights (people arriving at similar times to the same destination)
+// Find matching flights (people arriving at similar times to the same event)
 router.get('/find', authenticate, async (req, res) => {
   try {
-    const { destination, arrivalDate, timeWindow = 4 } = req.query;
+    const { eventId, arrivalDate, timeWindow = 4 } = req.query;
 
-    if (!destination || !arrivalDate) {
+    if (!eventId || !arrivalDate) {
       return res.status(400).json({ 
-        message: 'Destination and arrivalDate are required' 
+        message: 'Event ID and arrivalDate are required' 
       });
     }
 
     const targetDate = new Date(arrivalDate);
     const timeWindowMs = (parseInt(timeWindow) || 4) * 60 * 60 * 1000; // Convert hours to ms
 
-    // Find flights to the same destination
+    // Find flights for the same event
     // Arriving within the time window (before or after)
     const startTime = new Date(targetDate.getTime() - timeWindowMs);
     const endTime = new Date(targetDate.getTime() + timeWindowMs);
 
     const matches = await prisma.flight.findMany({
       where: {
-        destination: destination.toUpperCase(),
+        eventId: eventId,
         arrivalDate: {
           gte: startTime,
           lte: endTime
@@ -42,6 +42,13 @@ router.get('/find', authenticate, async (req, res) => {
             name: true,
             email: true,
             phone: true
+          }
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            destination: true
           }
         }
       },
@@ -74,11 +81,27 @@ router.get('/flight/:flightId', authenticate, async (req, res) => {
       where: {
         id: req.params.flightId,
         userId: req.user.id
+      },
+      include: {
+        event: {
+          select: {
+            id: true,
+            name: true,
+            destination: true
+          }
+        }
       }
     });
 
     if (!flight) {
       return res.status(404).json({ message: 'Flight not found' });
+    }
+
+    if (!flight.eventId) {
+      return res.json({
+        flight,
+        matches: []
+      });
     }
 
     const timeWindowMs = 4 * 60 * 60 * 1000; // 4 hours
@@ -87,7 +110,7 @@ router.get('/flight/:flightId', authenticate, async (req, res) => {
 
     const matches = await prisma.flight.findMany({
       where: {
-        destination: flight.destination,
+        eventId: flight.eventId,
         arrivalDate: {
           gte: startTime,
           lte: endTime
@@ -104,6 +127,13 @@ router.get('/flight/:flightId', authenticate, async (req, res) => {
             name: true,
             email: true,
             phone: true
+          }
+        },
+        event: {
+          select: {
+            id: true,
+            name: true,
+            destination: true
           }
         }
       },

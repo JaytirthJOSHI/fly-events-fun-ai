@@ -48,90 +48,79 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center">Loading...</div>
+        <div className="text-center text-hc-red font-bold animate-pulse">Loading...</div>
       </div>
     )
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">My Flights</h1>
-        <Link
-          to="/flights/new"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md font-medium"
-        >
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-hc-dark">My Flights</h1>
+        <Link to="/flights/new" className="btn-primary">
           + Add Flight
         </Link>
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-50 border-2 border-hc-red text-hc-red px-4 py-3 rounded-hc mb-6 font-medium">
           {error}
         </div>
       )}
 
       {flights.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500 mb-4">You haven't added any flights yet.</p>
-          <Link
-            to="/flights/new"
-            className="text-indigo-600 hover:text-indigo-700 font-medium"
-          >
+        <div className="card text-center py-12">
+          
+          <p className="text-hc-muted mb-4">You haven't added any flights yet.</p>
+          <Link to="/flights/new" className="text-hc-red hover:text-red-600 font-bold">
             Add your first flight →
           </Link>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {flights.map((flight) => (
-            <div key={flight._id} className="bg-white rounded-lg shadow-md p-6">
+            <div key={flight.id} className="card-interactive">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
+                  <h3 className="text-xl font-bold text-hc-dark">
                     {flight.flightNumber}
                   </h3>
-                  <p className="text-sm text-gray-500">{flight.airline}</p>
+                  {flight.event && (
+                    <p className="text-sm text-hc-muted">{flight.event.name}</p>
+                  )}
                 </div>
                 {flight.isActive && (
-                  <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">
+                  <span className="bg-hc-green/20 text-hc-green text-xs font-bold px-3 py-1 rounded-hc-full">
                     Active
                   </span>
                 )}
               </div>
 
               <div className="space-y-2 text-sm">
+                {flight.event && (
+                  <div>
+                    <span className="text-hc-muted">Event:</span>{' '}
+                    <span className="font-medium text-hc-dark">{flight.event.name} - {flight.event.destination}</span>
+                  </div>
+                )}
                 <div>
-                  <span className="text-gray-500">From:</span>{' '}
-                  <span className="font-medium">{flight.origin}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">To:</span>{' '}
-                  <span className="font-medium">{flight.destination}</span>
-                </div>
-                <div>
-                  <span className="text-gray-500">Arrival:</span>{' '}
-                  <span className="font-medium">
+                  <span className="text-hc-muted">Arrival:</span>{' '}
+                  <span className="font-medium text-hc-dark">
                     {formatDate(flight.arrivalDate)} at {formatTime(flight.arrivalTime)}
                   </span>
                 </div>
-                {flight.terminal && (
-                  <div>
-                    <span className="text-gray-500">Terminal:</span>{' '}
-                    <span className="font-medium">{flight.terminal}</span>
-                  </div>
-                )}
               </div>
 
-              <div className="mt-4 flex space-x-2">
+              <div className="mt-6 flex space-x-2">
                 <Link
-                  to={`/matches?flightId=${flight._id}`}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white text-center px-4 py-2 rounded-md text-sm font-medium"
+                  to={`/matches?flightId=${flight.id}`}
+                  className="flex-1 bg-hc-red hover:bg-red-600 text-white text-center px-4 py-2 rounded-hc-full text-sm font-bold transition-all duration-200"
                 >
                   Find Buddies
                 </Link>
                 <button
-                  onClick={() => handleDelete(flight._id)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium"
+                  onClick={() => handleDelete(flight.id)}
+                  className="bg-hc-darkless hover:bg-hc-dark text-white px-4 py-2 rounded-hc-full text-sm font-bold transition-all duration-200"
                 >
                   Delete
                 </button>

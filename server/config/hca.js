@@ -1,29 +1,7 @@
-import { Issuer } from 'openid-client';
-
-const HCA_DISCOVERY_URL = 'https://auth.hackclub.com/.well-known/openid-configuration';
+const HCA_BASE_URL = 'https://auth.hackclub.com';
 const CLIENT_ID = process.env.HACKCLUB_CLIENT_ID;
 const CLIENT_SECRET = process.env.HACKCLUB_CLIENT_SECRET;
-const REDIRECT_URI = process.env.HACKCLUB_REDIRECT_URI || 'http://localhost:3000/auth/callback';
-
-let client = null;
-
-export async function getHcaClient() {
-  if (client) return client;
-
-  try {
-    const issuer = await Issuer.discover(HCA_DISCOVERY_URL);
-    client = new issuer.Client({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
-      redirect_uris: [REDIRECT_URI],
-      response_types: ['code'],
-    });
-    return client;
-  } catch (error) {
-    console.error('Failed to initialize HCA client:', error);
-    throw error;
-  }
-}
+const REDIRECT_URI = process.env.HACKCLUB_REDIRECT_URI || 'http://localhost:5001/api/auth/callback';
 
 export function getAuthUrl(state) {
   if (!CLIENT_ID) {
@@ -35,8 +13,10 @@ export function getAuthUrl(state) {
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
     scope: 'openid profile email',
-    state: state || 'default',
+    state: state,
   });
 
-  return `https://auth.hackclub.com/oauth/authorize?${params.toString()}`;
+  return `${HCA_BASE_URL}/oauth/authorize?${params.toString()}`;
 }
+
+export { HCA_BASE_URL, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI };
