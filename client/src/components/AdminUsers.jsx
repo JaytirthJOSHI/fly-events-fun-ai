@@ -66,9 +66,9 @@ export default function AdminUsers() {
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      {user.profile_image && (
+                      {user.profileImage && (
                         <img 
-                          src={user.profile_image} 
+                          src={user.profileImage} 
                           alt="" 
                           className="w-8 h-8 rounded-full mr-3"
                         />
@@ -77,9 +77,9 @@ export default function AdminUsers() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {user.slack_id ? (
+                    {user.slackId ? (
                       <a
-                        href={`https://hackclub.enterprise.slack.com/team/${user.slack_id}`}
+                        href={`https://hackclub.enterprise.slack.com/team/${user.slackId}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-medium"
@@ -107,7 +107,7 @@ export default function AdminUsers() {
                     {user.flights?.length || 0}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.created_at)}
+                    {formatDate(user.createdAt)}
                   </td>
                 </tr>
                 {expandedUser === user.id && user.flights?.length > 0 && (
