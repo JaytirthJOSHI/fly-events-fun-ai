@@ -14,42 +14,22 @@ export default function Navbar({ user, onLogout }) {
               />
               <span className="text-xl font-bold text-white">Fly Events</span>
             </Link>
-            <div className="flex space-x-1">
-              <Link
-                to="/dashboard"
-                className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
-              >
-                My Flights
-              </Link>
-              <Link
-                to="/flights/new"
-                className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
-              >
-                Add Flight
-              </Link>
-              <Link
-                to="/matches"
-                className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
-              >
-                Find Buddies
-              </Link>
-              {user?.role === 'admin' && (
-                <>
-                  <Link
-                    to="/admin/events"
-                    className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
-                  >
-                    Events
-                  </Link>
-                  <Link
-                    to="/admin/users"
-                    className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
-                  >
-                    Users
-                  </Link>
-                </>
-              )}
-            </div>
+            {user?.role === 'admin' && (
+              <div className="flex space-x-1">
+                <Link
+                  to="/admin/events"
+                  className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
+                >
+                  Events
+                </Link>
+                <Link
+                  to="/admin/users"
+                  className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
+                >
+                  Users
+                </Link>
+              </div>
+            )}
           </div>
           <div className="flex items-center space-x-4">
             <span className="text-hc-muted text-sm">{user?.name}</span>

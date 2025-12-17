@@ -49,8 +49,7 @@ export default function AdminUsers() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slack ID</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Flights</th>
@@ -77,11 +76,20 @@ export default function AdminUsers() {
                       <div className="text-sm font-medium text-gray-900">{user.name || 'No name'}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {user.slack_id || '-'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {user.slack_id ? (
+                      <a
+                        href={`https://hackclub.enterprise.slack.com/team/${user.slack_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-xs font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        DM User
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">No Slack</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {user.phone || '-'}
@@ -104,7 +112,7 @@ export default function AdminUsers() {
                 </tr>
                 {expandedUser === user.id && user.flights?.length > 0 && (
                   <tr key={`${user.id}-flights`}>
-                    <td colSpan="7" className="px-6 py-4 bg-gray-50">
+                    <td colSpan="6" className="px-6 py-4 bg-gray-50">
                       <div className="text-sm font-medium text-gray-700 mb-2">Flights:</div>
                       <div className="space-y-2">
                         {user.flights.map(flight => (
