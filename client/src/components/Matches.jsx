@@ -194,11 +194,23 @@ export default function Matches() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => {
-              const slackId =
-                match.user?.slackId ||
-                (match.user?.id && match.user.id.startsWith('U') ? match.user.id : null)
-              const slackUrl = slackId
-                ? `https://hackclub.enterprise.slack.com/team/${slackId}`
+              const user = match.user || {}
+              const explicitSlackId = user.slackId || user.slack_id
+              const guessedSlackId =
+                explicitSlackId ||
+                (user.id && typeof user.id === 'string' && user.id.startsWith('U')
+                  ? user.id
+                  : null) ||
+                // As a last resort, look for any string field that looks like a Slack ID
+                Object.values(user).find(
+                  (val) =>
+                    typeof val === 'string' &&
+                    /^U[0-9A-Z]+$/.test(val)
+                ) ||
+                null
+
+              const slackUrl = guessedSlackId
+                ? `https://hackclub.enterprise.slack.com/team/${guessedSlackId}`
                 : null
 
               return (
