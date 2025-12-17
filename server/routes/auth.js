@@ -151,7 +151,7 @@ router.get('/callback', async (req, res) => {
             hcaId,
             email,
             name,
-            phone: identity?.phone || null,
+            phone: identity?.phone_number || null,
             slackId: identity?.slack_id || null,
             role: 'user', // New users are standard users
           },
@@ -168,13 +168,15 @@ router.get('/callback', async (req, res) => {
       }
     } else {
       // Update existing user info
+      const slackId = identity?.slack_id || null;
+      console.log('Updating user with slackId:', slackId);
       user = await prisma.user.update({
         where: { hcaId },
         data: {
           name,
           email,
-          phone: identity?.phone || user.phone,
-          slackId: identity?.slack_id || user.slackId,
+          phone: identity?.phone_number || user.phone,
+          slackId: slackId,
         },
         select: {
           id: true,
