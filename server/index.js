@@ -1,13 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import prisma from './db/prisma.js';
 import authRoutes from './routes/auth.js';
 import flightRoutes from './routes/flights.js';
 import matchRoutes from './routes/matches.js';
 import eventRoutes from './routes/events.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
