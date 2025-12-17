@@ -1,8 +1,36 @@
 import express from 'express';
 import prisma from '../db/prisma.js';
 import { authenticate } from '../middleware/auth.js';
+import { requireAdmin } from '../middleware/admin.js';
 
 const router = express.Router();
+
+// Admin: Get all users with their flights
+router.get('/admin/users', requireAdmin, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        flights: {
+          include: {
+            event: {
+              select: {
+                id: true,
+                name: true,
+                destination: true
+              }
+            }
+          },
+          orderBy: { arrivalDate: 'asc' }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
 // Lookup flight info from AviationStack API
 router.get('/lookup/:flightNumber', authenticate, async (req, res) => {

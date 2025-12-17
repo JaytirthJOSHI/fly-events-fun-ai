@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard'
 import FlightForm from './components/FlightForm'
 import Matches from './components/Matches'
 import AdminEvents from './components/AdminEvents'
+import AdminUsers from './components/AdminUsers'
 import Navbar from './components/Navbar'
 
 axios.defaults.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api'
@@ -88,6 +89,10 @@ function App() {
           <Route 
             path="/admin/events" 
             element={user?.role === 'admin' ? <AdminEvents /> : <Navigate to="/dashboard" />} 
+          />
+          <Route 
+            path="/admin/users" 
+            element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/dashboard" />} 
           />
           <Route 
             path="/" 

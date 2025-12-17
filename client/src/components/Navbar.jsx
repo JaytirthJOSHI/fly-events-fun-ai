@@ -34,12 +34,20 @@ export default function Navbar({ user, onLogout }) {
                 Find Buddies
               </Link>
               {user?.role === 'admin' && (
-                <Link
-                  to="/admin/events"
-                  className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
-                >
-                  Admin
-                </Link>
+                <>
+                  <Link
+                    to="/admin/events"
+                    className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
+                  >
+                    Events
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    className="text-hc-smoke hover:text-hc-red hover:bg-hc-darkless px-4 py-2 rounded-hc-full text-sm font-medium transition-all duration-200"
+                  >
+                    Users
+                  </Link>
+                </>
               )}
             </div>
           </div>
