@@ -6,5 +6,3 @@ export const requireAdmin = [authenticate, (req, res, next) => {
   }
   next();
 }];
-
-

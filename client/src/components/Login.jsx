@@ -66,6 +66,10 @@ export default function Login({ onLogin }) {
           <div className="text-center text-sm text-hc-muted">
             You'll be redirected to Hack Club Auth to sign in
           </div>
+
+          <div className="text-center text-xs text-hc-muted bg-hc-smoke px-3 py-2 rounded-hc">
+            This is a community project, not an official Hack Club product.
+          </div>
         </div>
       </div>
     </div>
