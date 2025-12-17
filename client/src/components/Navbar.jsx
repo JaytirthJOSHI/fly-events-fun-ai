@@ -2,11 +2,7 @@ import { Link } from 'react-router-dom'
 
 export default function Navbar({ user, onLogout }) {
   return (
-    <>
-      <div className="bg-hc-orange text-white text-center text-xs py-1 px-4">
-        Community project — not official Hack Club
-      </div>
-      <nav className="bg-hc-dark shadow-hc-elevated">
+    <nav className="bg-hc-dark shadow-hc-elevated">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-8">
@@ -47,6 +43,5 @@ export default function Navbar({ user, onLogout }) {
         </div>
       </div>
     </nav>
-    </>
   )
 }
