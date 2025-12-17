@@ -194,11 +194,15 @@ export default function Matches() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {matches.map((match) => {
-              const slackLink = match.user?.slackId 
-                ? `https://hackclub.slack.com/team/${match.user.slackId}`
-                : '';
-              const contactUrl = `https://contact-helper.hackclub.com?slack=${encodeURIComponent(slackLink)}&email=${encodeURIComponent(match.user?.email || '')}&name=${encodeURIComponent(match.user?.name || '')}`;
-              
+              const handleDmClick = async () => {
+                try {
+                  await axios.post(`/matches/dm/${match.user?.id}`)
+                  alert('DM sent on Slack!')
+                } catch (err) {
+                  alert(err.response?.data?.message || 'Failed to send DM')
+                }
+              }
+
               return (
                 <div key={match.id} className="card-interactive">
                   <div className="flex items-start gap-4 mb-4">
@@ -240,14 +244,13 @@ export default function Matches() {
                     </div>
                   </div>
 
-                  <a
-                    href={contactUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={handleDmClick}
                     className="btn-primary w-full text-center block"
                   >
-                    Contact
-                  </a>
+                    DM user
+                  </button>
                 </div>
               );
             })}
